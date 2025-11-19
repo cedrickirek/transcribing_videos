@@ -1,5 +1,5 @@
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
 import re
 from typing import Optional, Tuple
 import openai
@@ -18,17 +18,28 @@ def extract_video_id(url: str) -> Optional[str]:
             return match.group(1)
     return None
 
-def get_transcript(video_id: str) -> Optional[str]:
-    """Fetch transcript for a YouTube video"""
+def get_transcript(video_id: str) -> Tuple[Optional[str], Optional[str]]:
+    """Fetch transcript for a YouTube video
+    Returns: (transcript, error_message)
+    """
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-        transcript = " ".join([entry['text'] for entry in transcript_list])
-        return transcript
-    except (TranscriptsDisabled, NoTranscriptFound) as e:
-        return None
+        api = YouTubeTranscriptApi()
+        transcript_list = api.fetch(video_id)
+        transcript = " ".join([entry.text for entry in transcript_list])
+        return transcript, None
+    except TranscriptsDisabled:
+        return None, "Transcripts are disabled for this video by the creator."
+    except (NoTranscriptFound, VideoUnavailable):
+        # Try to list available transcripts
+        try:
+            api = YouTubeTranscriptApi()
+            available_transcripts = api.list(video_id)
+            available = [f"{t.language} ({t.language_code})" for t in available_transcripts]
+            return None, f"No English transcript found. Available: {', '.join(available) if available else 'None'}"
+        except:
+            return None, "No transcripts found for this video."
     except Exception as e:
-        print(f"Error fetching transcript: {e}")
-        return None
+        return None, f"Error fetching transcript: {str(e)}"
 
 def generate_summary(transcript: str, api_key: str) -> Tuple[str, str]:
     """
@@ -82,8 +93,9 @@ keyword1, keyword2, keyword3, ..."""
         return summary, keywords
     
     except Exception as e:
-        print(f"Error generating summary: {e}")
-        return "Summary generation failed", ""
+        error_msg = str(e)
+        print(f"Error generating summary: {error_msg}")
+        return f"Summary generation failed: {error_msg}", ""
 
 def get_video_metadata(video_id: str) -> Tuple[str, str]:
     """

@@ -64,10 +64,10 @@ with tab1:
                     else:
                         # Fetch transcript
                         st.info("📝 Fetching transcript...")
-                        transcript = get_transcript(video_id)
-                        
+                        transcript, error = get_transcript(video_id)
+
                         if not transcript:
-                            st.error("❌ Could not fetch transcript. Make sure the video has captions available.")
+                            st.error(f"❌ {error}")
                         else:
                             # Generate summary
                             st.info("🤖 Generating summary with AI...")
