@@ -4,12 +4,12 @@ A simple tool to save, summarize, and search your educational YouTube videos usi
 
 ## Features
 
-- ✅ Paste any YouTube URL to fetch transcript automatically
-- ✅ AI-generated bullet-point summaries using OpenAI
-- ✅ Keyword tagging for easy searching
-- ✅ SQLite database for local storage
-- ✅ Simple search functionality
-- ✅ Clean Streamlit interface
+-  Paste any YouTube URL to fetch transcript automatically
+-  AI-generated bullet-point summaries using OpenAI
+-  Keyword tagging for easy searching
+-  SQLite database for local storage
+-  Simple search functionality
+-  Clean Streamlit interface
 
 ## Setup
 
