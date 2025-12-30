@@ -1,6 +1,6 @@
 # 📚 YouTube Learning Repository
 
-A simple tool to save, summarize, and search your educational YouTube videos using AI.
+A simple tool to create notes from the 3-hours YouTube videos I watch every day. 
 
 ## Features
 
