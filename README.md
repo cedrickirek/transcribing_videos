@@ -1,4 +1,4 @@
-# 📚 YouTube Learning Repository
+# YouTube Learning Repository
 
 A simple tool to create notes from the 3-hours YouTube videos I watch every day. 
 
