@@ -4,36 +4,44 @@ A simple tool to create notes from the 3-hours YouTube videos I watch every day.
 
 ## Features
 
--  Paste any YouTube URL to fetch transcript automatically
--  AI-generated bullet-point summaries using OpenAI
--  Keyword tagging for easy searching
--  SQLite database for local storage
--  Simple search functionality
--  Clean Streamlit interface
+- Paste any YouTube URL to fetch its transcript automatically
+- AI-generated summaries using a local Ollama model — summary length adapts to video duration
+- Fallback audio transcription via Whisper for videos without subtitles
+- Keyword tagging for easy searching
+- SQLite database for local storage
+- Clean Streamlit interface
 
 ## Setup
 
-### 1. Install Dependencies
+### 1. Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Set up OpenAI API Key
+### 2. Install and start Ollama
 
-**Option A: Environment Variable (Recommended)**
+1. Download [Ollama](https://ollama.ai)
+2. Pull a model:
+   ```bash
+   ollama pull llama3.2
+   ```
+3. Start the server:
+   ```bash
+   ollama serve
+   ```
+
+### 3. (Optional) Enable transcription for videos without subtitles
+
+Install [ffmpeg](https://ffmpeg.org/download.html) and make sure it's on your PATH, then:
+
 ```bash
-# Copy the example file
-cp .env.example .env
-
-# Edit .env and add your OpenAI API key
-# Get your key from: https://platform.openai.com/api-keys
+pip install yt-dlp faster-whisper
 ```
 
-**Option B: Enter in App**
-You can also enter your API key directly in the sidebar when running the app.
+When a YouTube transcript is unavailable, the app will automatically download the audio and transcribe it locally using Whisper (`base` model, CPU).
 
-### 3. Run the App
+### 4. Run the app
 
 ```bash
 streamlit run app.py
@@ -43,88 +51,92 @@ The app will open in your browser at `http://localhost:8501`
 
 ## Usage
 
-### Adding Videos
+### Adding a video
 
-1. Go to the "Add Video" tab
+1. Go to the **Add Video** tab
 2. Paste a YouTube URL
-3. Click "Process Video"
-4. Wait for the transcript and summary to be generated
-5. The video is now saved in your repository!
+3. Select an Ollama model in the sidebar
+4. Click **Process Video**
+5. The app fetches the transcript (or transcribes the audio if needed), generates a summary, and saves everything locally
 
 ### Searching
 
-1. Go to the "Search" tab
-2. Type any keyword (e.g., "transformer", "neural network", "backpropagation")
-3. View all matching videos with their summaries
+Go to the **Search** tab and type any keyword — the app searches across summaries and keywords.
 
-### Browsing All Videos
+### Browsing
 
-1. Go to the "All Videos" tab
-2. Browse all your saved videos in chronological order
-3. Click "Watch" to open the video on YouTube
+Go to the **All Videos** tab to browse all saved videos in chronological order.
 
-## Project Structure
+## Adaptive summaries
+
+Summary detail scales with estimated video length (derived from transcript word count at ~150 words/minute):
+
+| Duration | Summary |
+|---|---|
+| < 10 min | 1-2 sentence overview, 3-5 key points |
+| 10–30 min | 2-3 sentence overview, 5-8 key points, context section |
+| > 30 min | 3-4 sentence overview, 8-12 key points, context + conclusions |
+
+## Project structure
 
 ```
-youtube_learning_repo/
-├── app.py                 # Main Streamlit app
-├── database.py            # SQLite database operations
-├── video_processor.py     # YouTube transcript & AI summary logic
-├── requirements.txt       # Python dependencies
-├── .env.example          # Example environment variables
-├── learning_repo.db      # SQLite database (created on first run)
-└── README.md             # This file
+├── app.py               # Streamlit UI
+├── database.py          # SQLite operations
+├── video_processor.py   # Transcript fetching, Whisper fallback, summary generation
+├── requirements.txt     # Python dependencies
+└── learning_repo.db     # Local database (created on first run)
 ```
 
-## Database Schema
+## Google Sheets export
 
-```sql
-CREATE TABLE videos (
-    id INTEGER PRIMARY KEY,
-    video_url TEXT UNIQUE,
-    video_id TEXT,
-    title TEXT,
-    channel TEXT,
-    transcript TEXT,
-    summary TEXT,
-    keywords TEXT,
-    date_added TIMESTAMP
-)
+You can sync all your saved videos to a Google Sheet directly from the **All Videos** tab.
+
+### One-time setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com) and create a project
+2. Enable the **Google Sheets API** and **Google Drive API**
+3. Go to **IAM & Admin → Service Accounts**, create a service account, and download its JSON key file
+4. Create a Google Sheet, then share it with the service account's email address (e.g. `my-bot@my-project.iam.gserviceaccount.com`) with **Editor** access
+5. Copy the spreadsheet ID from the URL: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
+
+### Configure the app
+
+Either set environment variables in a `.env` file:
+
+```
+GOOGLE_CREDENTIALS_PATH=path/to/credentials.json
+GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
 ```
 
-## Future Enhancements
+Or enter the values directly in the sidebar when running the app.
 
-- [ ] Flashcard generation mode
-- [ ] Vector embeddings for semantic search
-- [ ] Export to Markdown/Notion
-- [ ] YouTube Data API integration for better metadata
-- [ ] Tags/categories system
-- [ ] Spaced repetition for review
+Each export does a **full sync** — it clears the sheet and rewrites all videos. Columns: Title, Channel, URL, Date Added, Summary, Keywords.
 
 ## Requirements
 
 - Python 3.8+
-- OpenAI API key (costs ~$0.002 per summary with GPT-3.5-turbo)
-- Internet connection for fetching transcripts
-
-## Notes
-
-- Only works with videos that have captions/subtitles available
-- Transcript fetching is free (no YouTube API key needed)
-- AI summaries use OpenAI API (minimal cost, ~$0.002 per video)
-- Database is stored locally in `learning_repo.db`
+- [Ollama](https://ollama.ai) running locally
+- Internet connection for fetching YouTube transcripts
+- (Optional) [ffmpeg](https://ffmpeg.org/download.html) for Whisper audio transcription
+- (Optional) Google Cloud service account for Sheets export
 
 ## Troubleshooting
 
-**"Could not fetch transcript"**
-- Make sure the video has captions enabled
-- Try a different video
-- Check if the URL is correct
+**"Cannot connect to Ollama"**
+- Make sure Ollama is running: `ollama serve`
+- Check the selected model is pulled: `ollama pull llama3.2`
 
-**"API key error"**
-- Verify your OpenAI API key is correct
-- Check you have credits in your OpenAI account
+**"Audio download failed"**
+- Make sure `ffmpeg` is installed and available on your PATH
 
-## License
+**"No transcripts found"**
+- If the optional Whisper dependencies are installed, the app will attempt audio transcription automatically
+- If not installed, install them: `pip install yt-dlp faster-whisper` (and ffmpeg)
 
-MIT - Feel free to use and modify for your own learning!
+## Future ideas
+
+- [ ] Flashcard generation mode
+- [ ] Vector embeddings for semantic search
+- [ ] Export to Markdown / Notion
+- [ ] YouTube Data API for real video titles and channel names
+- [ ] Tags / categories system
