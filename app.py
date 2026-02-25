@@ -3,7 +3,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from database import VideoDatabase
 from video_processor import extract_video_id, get_transcript, transcribe_with_whisper, generate_summary, get_video_metadata
-from sheets_exporter import export_to_sheets
+from sheets_exporter import export_to_sheets, append_to_sheets
 
 load_dotenv()
 
@@ -122,6 +122,15 @@ with tab1:
 
                             if success:
                                 st.success("✅ Video added successfully!")
+
+                                # Auto-append to Google Sheets if configured
+                                if sheets_credentials and sheets_id:
+                                    saved = db.get_video_by_url(video_url)
+                                    ok, msg = append_to_sheets(saved, sheets_credentials, sheets_id)
+                                    if ok:
+                                        st.success("📊 Appended to Google Sheets.")
+                                    else:
+                                        st.warning(f"⚠️ Sheets sync failed: {msg}")
 
                                 # Display results
                                 st.markdown("### Summary")
