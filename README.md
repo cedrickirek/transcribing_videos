@@ -1,6 +1,6 @@
 # YouTube Learning Repository
 
-A tool to save, summarize, and search your educational YouTube videos using local AI — no API keys or cloud costs.
+A simple tool to create notes from the 3-hours YouTube videos I watch every day. 
 
 ## Features
 
